@@ -15,4 +15,4 @@ requires "futhark >= 0.9.0"
 task buildMapm, "Builds the MAPM static library dependency":
   exec "git submodule init"
   exec "git submodule update"
-  exec "cd src/mapm && ./mklib"
+  exec "cd src/mapm && ./mklib && cp libmapm.a .."
