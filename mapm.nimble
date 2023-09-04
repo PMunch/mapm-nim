@@ -5,6 +5,7 @@ author        = "PMunch"
 description   = "A Nim wrapper for Mike's Arbitrary Precision Math Library"
 license       = "MIT"
 srcDir        = "src"
+skipDirs      = @["mapm"]
 
 
 # Dependencies
