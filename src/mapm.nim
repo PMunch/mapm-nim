@@ -117,18 +117,43 @@ export FloatFormatMode
 
 import internal
 
-type Mapm* = distinct ptr MapmStruct ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
+type
+  MapmLibrary = distinct pointer
+  Mapm* = distinct ptr MapmStruct ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
 
 converter toInternal(m: Mapm): MapmInternal = cast[MapmInternal](m)
 
 proc `=destroy`(x: Mapm) =
   if not x.isNil:
+    # We have to ensure that we don't free MAPM globals..
+    if cast[pointer](x) == cast[pointer](MM_Zero): return
+    if cast[pointer](x) == cast[pointer](MM_One): return
+    if cast[pointer](x) == cast[pointer](MM_Two): return
+    if cast[pointer](x) == cast[pointer](MM_Three): return
+    if cast[pointer](x) == cast[pointer](MM_Four): return
+    if cast[pointer](x) == cast[pointer](MM_Five): return
+    if cast[pointer](x) == cast[pointer](MM_Ten): return
+    if cast[pointer](x) == cast[pointer](MM_LOG_2_BASE_E): return
+    if cast[pointer](x) == cast[pointer](MM_LOG_3_BASE_E): return
+    if cast[pointer](x) == cast[pointer](MM_E): return
+    if cast[pointer](x) == cast[pointer](MM_PI): return
+    if cast[pointer](x) == cast[pointer](MM_HALF_PI): return
+    if cast[pointer](x) == cast[pointer](MM_2_PI): return
+    if cast[pointer](x) == cast[pointer](MM_LOG_E_BASE_10): return
+    if cast[pointer](x) == cast[pointer](MM_LOG_10_BASE_E): return
     mApmFree(x)
+
+proc `=sink`(dest: var Mapm, source: Mapm) =
+  `=destroy`(dest)
+  copyMem(cast[pointer](dest.addr), cast[pointer](source.unsafeAddr), sizeof(pointer))
 
 proc `=copy`(dest: var Mapm, source: Mapm) =
   if cast[pointer](dest) != cast[pointer](source):
-    `=destroy`(dest)
-    wasMoved(dest)
+    if dest.isNil:
+      dest = mApmInit().Mapm
+    #else:
+    #  #`=destroy`(dest)
+    #  wasMoved(dest)
     mApmCopy(dest, source)
 
 converter toMapm(m: MapmInternal): Mapm = cast[Mapm](m)
@@ -228,7 +253,18 @@ proc freeAll*() =
   ##
   ## A subsequent call to `trimMem()` will re-initialize the library and it will
   ## be ready for use again.
+  ##
+  ## NOTE: Nim will automatically call this when the program completes, but you
+  ## will not get double free errors if you call it yourself before then.
+  ## Primarily intended to free the internal MAPM memory in constricted
+  ## environments when not using any MAPM functions.
   mApmFreeAllMem()
+
+proc `=destroy`(x: MapmLibrary) =
+  ## This hook only exists to free the memory of MAPM on Nim exit
+  freeAll()
+
+var mapmLibraryForDestroyhook: MapmLibrary
 
 proc significantDigits*(x: Mapm): int =
   ## This function will return the number of significant digits in `x`.
@@ -326,7 +362,7 @@ proc formatMapm*(x: Mapm, decimals = -1, radix = '.', separator = ',', separator
   var length = max(x.significantDigits, abs(x.exponent))
   if separatorCount != 0:
     length = length + length div separatorCount
-  length += 3 + decimals
+  length += 4 + decimals
   result = newString(length)
   mApmToFixptStringEx(cast[cstring](result[0].addr), decimals.cint, x, radix.cschar, separator.cschar, separatorCount.cint)
   result = result.strip(leading=false, trailing=true, {'\0'})
@@ -378,19 +414,35 @@ proc `+`*(x, y: Mapm): Mapm =
   result = Mapm.init
   mApmAdd(result, x, y)
 
+proc `+=`*(x: var Mapm, y: Mapm) =
+  let xCurrent = x
+  mApmAdd(x, xCurrent, y)
+
 proc `-`*(x, y: Mapm): Mapm =
   result = Mapm.init
   mApmSubtract(result, x, y)
 
+proc `-=`*(x: var Mapm, y: Mapm) =
+  let xCurrent = x
+  mApmSubtract(x, xCurrent, y)
+
 proc `*`*(x, y: Mapm): Mapm =
   result = Mapm.init
   mApmMultiply(result, x, y)
+
+proc `*=`*(x: var Mapm, y: Mapm) =
+  let xCurrent = x
+  mApmMultiply(x, xCurrent, y)
 
 proc `/`*(x, y: Mapm): Mapm =
   ## This performs division on two MAPM values and tries to guess a good amount
   ## of significant digits. See divide_.
   result = Mapm.init
   mApmDivide(result, (x.significantDigits - abs(x.exponent) + y.significantDigits - abs(y.exponent)).cint, x, y)
+
+proc `/=`*(x: var Mapm, y: Mapm): Mapm =
+  let xCurrent = x
+  mApmDivide(x, (x.significantDigits - abs(x.exponent) + y.significantDigits - abs(y.exponent)).cint, xCurrent, y)
 
 proc divide*(x, y: Mapm, decimals = dp): Mapm =
   ## Unlike the other three basic operations, division cannot be counted on to
@@ -431,6 +483,11 @@ proc divMod*(x, y: Mapm): tuple[quotient, remainder: Mapm] =
   result.quotient = Mapm.init
   result.remainder = Mapm.init
   mApmIntegerDivRem(result.quotient, result.remainder, x, y)
+
+proc `mod`*(x, y: Mapm): Mapm =
+  ## Calculates the modulos `y` of `x`. Basically just calls `divMod`_ and
+  ## returns the remainder, so the same notes apply here.
+  divMod(x, y).remainder
 
 proc splitDecimal*(x: Mapm): tuple[intpart, floatpart: Mapm] =
   ## This function can be used to split up the integer portion and fractional
@@ -679,3 +736,66 @@ proc `<=`*(x, y: Mapm): bool =
 
 proc `>=`*(x, y: Mapm): bool =
   x.cmp(y) >= 0
+
+let RadPerDeg = (0'm + MMPi) / 180'm
+
+proc degToRad*(d: Mapm): Mapm =
+  d * RadPerDeg
+
+proc radToDeg*(d: Mapm): Mapm =
+  d / RadPerDeg
+
+iterator countup*(x, y: Mapm, step = MMOne): Mapm =
+  var i = x
+  while i <= y:
+    yield i
+    i += step
+
+iterator countdown*(x, y: Mapm, step = MMOne): Mapm =
+  var i = x
+  while i <= y:
+    yield i
+    i -= step
+
+proc binom*(n, k: Mapm): Mapm =
+  ## Computes the [binomial coefficient](https://en.wikipedia.org/wiki/Binomial_coefficient).
+  if k <= 0'm: return 1'm
+  if 2'm * k > n: return binom(n, n - k)
+  result = n
+  for i in countup(2'm, k):
+    result = (result * (n + 1'm - i)) div i
+
+proc toInt*(n: Mapm): int =
+  ## Converts a MAPM value to a normal integer. This will throw an error if the
+  ## number is too large to fit. Only useful if you want to use higher precision
+  ## during your calculation but the end result can be rounded, or if the
+  ## intermediary numbers of your calculation are too large to fit in an
+  ## integer.
+  ##
+  ## NOTE: This procedure currently stringifies the MAPM number and parses the
+  ## result with Nims `parseInt`. It will therefore be quite slow. This
+  ## procedure exists so that everyone can use it and benefit from the eventual
+  ## speed boost when it's implemented in a more clever way.
+  var str = newString(max(0, n.exponent) + 2)
+  mapmtointegerstring(cast[cstring](str[0].addr), n)
+  str = str.strip(leading=false, trailing=true, {'\0'})
+  parseInt(str)
+
+proc toFloat*(n: Mapm): float =
+  ## Converts a MAPM value to a normal float. This will throw an error if the
+  ## number is too large to fit. Only useful if you want to use higher precision
+  ## during your calculation but the end result can be rounded, or if the
+  ## intermediary numbers of your calculation are too large or too small to fit
+  ## in a float.
+  ##
+  ## NOTE: This procedure currently stringifies the MAPM number and parses the
+  ## result with Nims `parseFloat`. It will therefore be quite slow. This
+  ## procedure exists so that everyone can use it and benefit from the eventual
+  ## speed boost when it's implemented in a more clever way.
+  ##
+  ## NOTE2: The string is generated with 16 decimals which should match what
+  ## normal floats can fairly accurately represent.
+  var str = newString(abs(n.exponent) + 16 + 4)
+  mApmToFixPtString(cast[cstring](str[0].addr), 16.cint, n)
+  str = str.strip(leading=false, trailing=true, {'\0'})
+  parseFloat(str)
