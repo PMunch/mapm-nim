@@ -116,6 +116,21 @@ import strutils
 export FloatFormatMode
 
 import internal
+export MM_Zero
+export MM_One
+export MM_Two
+export MM_Three
+export MM_Four
+export MM_Five
+export MM_Ten
+export MM_LOG_2_BASE_E
+export MM_LOG_3_BASE_E
+export MM_E
+export MM_PI
+export MM_HALF_PI
+export MM_2_PI
+export MM_LOG_E_BASE_10
+export MM_LOG_10_BASE_E
 
 type
   MapmLibrary = distinct pointer
