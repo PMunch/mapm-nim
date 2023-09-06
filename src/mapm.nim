@@ -578,6 +578,14 @@ proc splitDecimal*(x: Mapm): tuple[intpart, floatpart: Mapm] =
   mApmIntegerDivRem(result.intpart, result.floatpart, x, MMOne)
   errChk()
 
+proc trunc*(x: Mapm): Mapm =
+  ## This function truncates a number, ie. removes the floating portion. So,
+  ## 32.17042 would return '32'.
+  result = Mapm.init
+  var floatpart = Mapm.init
+  mApmIntegerDivRem(result, floatpart, x, MMOne)
+  errChk()
+
 proc fac*(x: Mapm): Mapm =
   ## Computes the factorial of `x`. A non-integer input will yield nonsense.
   ## Actually, the algorithm simply multiplies:
