@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.1"
+version       = "0.3.0"
 author        = "PMunch"
 description   = "A Nim wrapper for Mike's Arbitrary Precision Math Library"
 license       = "MIT"
