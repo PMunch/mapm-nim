@@ -136,7 +136,7 @@ type
   MapmLibrary = distinct pointer
   Mapm* = distinct ptr MapmStruct ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
 
-converter toInternal(m: Mapm): MapmInternal = cast[MapmInternal](m)
+converter toInternal*(m: Mapm): MapmInternal = cast[MapmInternal](m)
 
 proc `=destroy`(x: Mapm) =
   if not x.isNil:
@@ -171,7 +171,7 @@ proc `=copy`(dest: var Mapm, source: Mapm) =
     #  wasMoved(dest)
     mApmCopy(dest, source)
 
-converter toMapm(m: MapmInternal): Mapm = cast[Mapm](m)
+converter toMapm*(m: MapmInternal): Mapm = cast[Mapm](m)
 
 const
   defaultPrecision* {.intdefine.} = 30 ## \
