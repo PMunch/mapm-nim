@@ -141,7 +141,8 @@ export MM_LOG_10_BASE_E
 
 type
   MapmLibrary = distinct pointer
-  Mapm* = distinct ptr MapmStruct ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
+  Mapm* = object ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
+    internal: MapmInternal
 
 when not defined(noWrapMapmErrors):
   var
@@ -170,45 +171,40 @@ when not defined(noWrapMapmErrors):
 else:
   template errChk(): untyped = discard
 
-converter toInternal*(m: Mapm): MapmInternal = cast[MapmInternal](m)
-
 proc `=destroy`(x: Mapm) =
-  if not x.isNil:
+  if not x.internal.isNil:
     # We have to ensure that we don't free MAPM globals..
-    if cast[pointer](x) == cast[pointer](MM_Zero): return
-    if cast[pointer](x) == cast[pointer](MM_One): return
-    if cast[pointer](x) == cast[pointer](MM_Two): return
-    if cast[pointer](x) == cast[pointer](MM_Three): return
-    if cast[pointer](x) == cast[pointer](MM_Four): return
-    if cast[pointer](x) == cast[pointer](MM_Five): return
-    if cast[pointer](x) == cast[pointer](MM_Ten): return
-    if cast[pointer](x) == cast[pointer](MM_LOG_2_BASE_E): return
-    if cast[pointer](x) == cast[pointer](MM_LOG_3_BASE_E): return
-    if cast[pointer](x) == cast[pointer](MM_E): return
-    if cast[pointer](x) == cast[pointer](MM_PI): return
-    if cast[pointer](x) == cast[pointer](MM_HALF_PI): return
-    if cast[pointer](x) == cast[pointer](MM_2_PI): return
-    if cast[pointer](x) == cast[pointer](MM_LOG_E_BASE_10): return
-    if cast[pointer](x) == cast[pointer](MM_LOG_10_BASE_E): return
-    mApmFree(x)
+    if x.internal == MM_Zero: return
+    if x.internal == MM_One: return
+    if x.internal == MM_Two: return
+    if x.internal == MM_Three: return
+    if x.internal == MM_Four: return
+    if x.internal == MM_Five: return
+    if x.internal == MM_Ten: return
+    if x.internal == MM_LOG_2_BASE_E: return
+    if x.internal == MM_LOG_3_BASE_E: return
+    if x.internal == MM_E: return
+    if x.internal == MM_PI: return
+    if x.internal == MM_HALF_PI: return
+    if x.internal == MM_2_PI: return
+    if x.internal == MM_LOG_E_BASE_10: return
+    if x.internal == MM_LOG_10_BASE_E: return
+    mApmFree(x.internal)
     errChk()
-
-proc `=sink`(dest: var Mapm, source: Mapm) =
-  `=destroy`(dest)
-  copyMem(cast[pointer](dest.addr), cast[pointer](source.unsafeAddr), sizeof(pointer))
 
 proc `=copy`(dest: var Mapm, source: Mapm) =
-  if cast[pointer](dest) != cast[pointer](source):
-    if dest.isNil:
-      dest = mApmInit().Mapm
+  if cast[pointer](dest.internal) != cast[pointer](source.internal):
+    if dest.internal.isNil:
+      dest.internal = mApmInit()
       errChk()
-    #else:
-    #  #`=destroy`(dest)
-    #  wasMoved(dest)
-    mApmCopy(dest, source)
+    if source.internal.isNil: # Not sure if this is possible, but just in case
+      mApmCopy(dest.internal, MMZero)
+    else:
+      mApmCopy(dest.internal, source.internal)
     errChk()
 
-converter toMapm*(m: MapmInternal): Mapm = cast[Mapm](m)
+converter toMapm*(m: MapmInternal): Mapm = Mapm(internal: m)
+converter toInternal*(m: Mapm): MapmInternal = m.internal
 
 const
   defaultPrecision* {.intdefine.} = 30 ## \
@@ -239,7 +235,10 @@ proc set*(m: var Mapm, y: string) =
   ## myNum.set("+987622.87633e+27")
   ## myNum.set(".0000004217")
   ## ```
-  mApmSetString(m, y)
+  ##
+  ## NOTE: It seems like the internal MAPM method for doing this doesn't catch
+  ## all invalid inputs, so be careful what you pass in.
+  mApmSetString(m, cast[cstring](y[0].addr))
   errChk()
 
 proc set*(m: var Mapm, y: int) =
