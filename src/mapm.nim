@@ -145,28 +145,29 @@ type
     internal: MapmInternal
 
 when not defined(noWrapMapmErrors):
-  var
-    cExc = ""
-    defect = false
-
-  {.passL:"-Wl,--wrap=M_apm_log_error_msg".}
-  proc wrapper(fatal: cint, message: cstring) {.exportc: "__wrap_M_apm_log_error_msg".} =
-    defect = defect or (fatal == 1)
-    cExc.add message
-    cExc.add "\n"
-
   type
     MapmError* = object of CatchableError
     MapmDefect* = object of Defect
 
+  var
+    cExc = ""
+    defect = newException(MapmDefect, newString(100)) # Pre-allocate our defect and error message string
+
+  {.passL:"-Wl,--wrap=M_apm_log_error_msg".}
+  proc mapmErrorHandler(fatal: cint, message: cstring) {.exportc: "__wrap_M_apm_log_error_msg".} =
+    if fatal == 1:
+      copyMem(defect.msg[0].addr, message, message.len) # Copies the string into the pre-allocated buffer
+      raise defect # Raise the defect, nimTestErrorFlag then picks it up before the C function returns
+      {.emit: "nimTestErrorFlag();".} # Ensure that the defect is actually raised and shuts down
+    else:
+      # In the non-fatal case simply append the message
+      cExc.add message
+      cExc.add "\n"
+
   template errChk(): untyped =
     if cExc.len != 0:
-      let ex = if defect:
-        newException(MapmDefect, cExc.strip)
-      else:
-        newException(MapmError, cExc.strip)
+      let ex = newException(MapmError, cExc.strip)
       cExc = ""
-      defect = false
       raise ex
 else:
   template errChk(): untyped = discard
