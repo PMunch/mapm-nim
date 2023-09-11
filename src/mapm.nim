@@ -370,7 +370,7 @@ proc formatFloat*(x: Mapm, format: FloatFormatMode = ffDefault, precision = 16, 
   let exp = x.exponent
   let precision = if precision == -1: 6 else: precision
   if format  == ffScientific or (format == ffDefault and (exp < -4 or exp >= precision)):
-    result = newString(precision + (abs(exp) div 10) + 6)
+    result = newString((if precision >= 0: precision else: x.significantDigits) + (abs(exp) div 10) + 6)
     mApmToString(cast[cstring](result[0].addr), (precision - (if format == ffDefault: 1 else: 0)).cint, x)
     errChk()
     result = result.strip(leading=false, trailing=true, {'\0'})
