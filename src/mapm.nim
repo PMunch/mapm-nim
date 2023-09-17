@@ -516,7 +516,7 @@ proc `/`*(x, y: Mapm): Mapm =
   ## This performs division on two MAPM values and tries to guess a good amount
   ## of significant digits. See divide_.
   result = Mapm.init
-  mApmDivide(result, (x.significantDigits - abs(x.exponent) + y.significantDigits - abs(y.exponent)).cint, x, y)
+  mApmDivide(result, (max(0, x.significantDigits - abs(x.exponent)) + max(0, y.significantDigits - abs(y.exponent))).cint, x, y)
   errChk()
 
 proc `/=`*(x: var Mapm, y: Mapm): Mapm =
