@@ -279,7 +279,9 @@ proc init*(_: type Mapm, x: string | int | float): Mapm =
   ## Generic alternative to `initMapm`.
   initMapm(x)
 
-proc `'m`*(n: string): Mapm =
+import macros
+
+macro `'m`*(n: static[string]): Mapm =
   ## Easily create MAPM literals. The value is interpreted as a string, so no
   ## floating point rounding errors will happen.
   ##
@@ -287,7 +289,9 @@ proc `'m`*(n: string): Mapm =
   ## ```nim
   ## var x = 100.42e-2'm
   ## ```
-  initMapm(n)
+  let str = n.replace("_", "")
+  quote do:
+    initMapm(`str`)
 
 proc trimMem*() =
   ## MAPM keeps some internal state when using math operations (tables of trig
