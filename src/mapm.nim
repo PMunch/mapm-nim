@@ -119,7 +119,7 @@
 ## obtain a 'semaphore', 'mutex',  or 'critical code section' so the operating
 ## system will guarantee that only one MAPM thread will be active at a time.
 
-import strutils
+import strutils, hashes
 export FloatFormatMode
 
 import internal
@@ -925,3 +925,14 @@ proc toFloat*(n: Mapm): float =
   errChk()
   str = str.strip(leading=false, trailing=true, {'\0'})
   parseFloat(str)
+
+proc hash*(x: Mapm): Hash =
+  M_apm_normalize(x)
+
+  let data = cast[ptr UncheckedArray[uint8]](x.internal.m_apm_data)
+
+  var h: Hash = 0
+  h = h !& hash(x.internal.m_apm_exponent)
+  h = h !& hash(x.internal.m_apm_sign)
+  h = h !& hash(data.toOpenArray(0, x.internal.m_apm_malloclength - 1))
+  return !$h

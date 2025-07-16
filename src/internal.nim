@@ -1,13 +1,14 @@
 import os
 
-{.passL: currentSourcePath.parentDir() & "/libmapm.a".}
+{.passL: currentSourcePath.parentDir() / "/libmapm.a".}
 
 when defined(useFuthark) or defined(useFutharkForMapm):
   import futhark
 
   importc:
-    path "./mapm"
+    path currentSourcePath.parentDir() / "mapm"
     "m_apm.h"
+    "m_apm_lc.h"
     rename M_APM, M_APM_INTERNAL
 else:
-  include futhark_CBA43C8F1062BEDE
+  include futhark_EC9875269F340CC6
