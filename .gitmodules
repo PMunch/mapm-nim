@@ -1,3 +1,0 @@
-[submodule "src/mapm"]
-	path = src/mapm
-	url = https://github.com/LuaDist/mapm.git

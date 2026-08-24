@@ -3,10 +3,10 @@
 ## This is a wrapper for MAPM, an older but quite complete arbitrary math
 ## library. The wrapper is made to be as close to the Nim maths module as
 ## possible so that it can function as a drop-in replacement when you realise
-## that you need better precision. The low-level wrapper is done through Futhark
-## and both the `libmapm.a` and completed wrapper exists in this repo. If you
-## want or need to rebuild `libmapm.a` you can run the Nimble task `buildMapm`.
-## If you want Futhark to rebuild the wrapper you can compile with
+## that you need better precision. The low-level wrapper is done through
+## Futhark. MAPM 4.9.5a source is included and compiled for the current target
+## as part of a normal Nim build. If you want Futhark to rebuild the wrapper,
+## compile with
 ## `-d:useFuthark` or `-d:useFutharkForMapm`.
 ##
 ## Example:
@@ -22,9 +22,10 @@
 ## this.
 ##
 ## MAPM by default handles errors by writing to stderr and return 0 in most
-## cases (or calls `exit(100)` if it's a memory allocation error). Unless you
-## pass `-d:noWrapMapmErrors` this library will use `-Wl,--wrap` to replace the
-## internal error handling function of MAPM and turn these into exceptions.
+## cases (or calls `exit(100)` if it's a memory allocation error). On Linux,
+## unless you pass `-d:noWrapMapmErrors`, this library uses `-Wl,--wrap` to
+## replace the internal error handling function of MAPM and turn these into
+## exceptions.
 ## A `CatchableError` called `MapmError` is used when it would write to stderr
 ## and return 0, and a `Defect` called `MapmDefect` is thrown in the cases where
 ## it would've called `exit(100)`. These exceptions will have the original
@@ -144,7 +145,7 @@ type
   Mapm* = object ## The core MAPM number type. This is properly wrapped with destructor calls in Nim so they can be used as normal numbers.
     internal: MapmInternal
 
-when not defined(noWrapMapmErrors):
+when defined(linux) and not defined(noWrapMapmErrors):
   type
     MapmError* = object of CatchableError
     MapmDefect* = object of Defect

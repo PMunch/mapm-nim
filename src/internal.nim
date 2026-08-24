@@ -1,8 +1,44 @@
-import os
-
-{.passL: currentSourcePath.parentDir() / "/libmapm.a".}
+{.compile: "mapm/mapm5sin.c".}
+{.compile: "mapm/mapm_add.c".}
+{.compile: "mapm/mapm_cpi.c".}
+{.compile: "mapm/mapm_div.c".}
+{.compile: "mapm/mapm_exp.c".}
+{.compile: "mapm/mapm_fam.c".}
+{.compile: "mapm/mapm_fft.c".}
+{.compile: "mapm/mapm_flr.c".}
+{.compile: "mapm/mapm_fpf.c".}
+{.compile: "mapm/mapm_gcd.c".}
+{.compile: "mapm/mapm_lg2.c".}
+{.compile: "mapm/mapm_lg3.c".}
+{.compile: "mapm/mapm_lg4.c".}
+{.compile: "mapm/mapm_log.c".}
+{.compile: "mapm/mapm_mul.c".}
+{.compile: "mapm/mapm_pow.c".}
+{.compile: "mapm/mapm_rcp.c".}
+{.compile: "mapm/mapm_rnd.c".}
+{.compile: "mapm/mapm_set.c".}
+{.compile: "mapm/mapm_sin.c".}
+{.compile: "mapm/mapmasin.c".}
+{.compile: "mapm/mapmasn0.c".}
+{.compile: "mapm/mapmcbrt.c".}
+{.compile: "mapm/mapmcnst.c".}
+{.compile: "mapm/mapmfact.c".}
+{.compile: "mapm/mapmfmul.c".}
+{.compile: "mapm/mapmgues.c".}
+{.compile: "mapm/mapmhasn.c".}
+{.compile: "mapm/mapmhsin.c".}
+{.compile: "mapm/mapmipwr.c".}
+{.compile: "mapm/mapmistr.c".}
+{.compile: "mapm/mapmpwr2.c".}
+{.compile: "mapm/mapmrsin.c".}
+{.compile: "mapm/mapmsqrt.c".}
+{.compile: "mapm/mapmstck.c".}
+{.compile: "mapm/mapmutil.c".}
+{.compile: "mapm/mapmutl1.c".}
+{.compile: "mapm/mapmutl2.c".}
 
 when defined(useFuthark) or defined(useFutharkForMapm):
+  import std/os
   import futhark
 
   importc:

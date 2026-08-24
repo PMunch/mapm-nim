@@ -1,11 +1,10 @@
 # Package
 
-version       = "0.4.0"
+version       = "0.5.0"
 author        = "PMunch"
 description   = "A Nim wrapper for Mike's Arbitrary Precision Math Library"
 license       = "MIT"
 srcDir        = "src"
-skipDirs      = @["mapm"]
 
 
 # Dependencies
@@ -13,7 +12,6 @@ skipDirs      = @["mapm"]
 requires "nim >= 2.0.0"
 #requires "futhark >= 0.9.0"
 
-task buildMapm, "Builds the MAPM static library dependency":
-  exec "git submodule init"
-  exec "git submodule update"
-  exec "cd src/mapm && ./mklib && cp libmapm.a .."
+task test, "Run the test suite with ORC and ARC":
+  exec "nim c -r --mm:orc --path:src tests/test_mapm.nim"
+  exec "nim c -r --mm:arc --path:src tests/test_mapm.nim"
